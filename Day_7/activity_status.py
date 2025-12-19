@@ -1,40 +1,46 @@
 import streamlit as st
-import numpy as np
-import pickle
 import os
+import pickle
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
 
-st.set_page_config(page_title="KNN Purchase Prediction", layout="centered")
-st.title("🛒 KNN Purchase Predictor")
+MODEL_FILE = "knn_model_file.pkl"
 
-@st.cache_resource
-def load_model():
-    if not os.path.exists("knn_model_file.pkl"):
-        st.error("❌ knn_model_file.pkl not found")
-        st.stop()
+st.title("KNN Model Example")
 
-    if not os.path.exists("scaler.pkl"):
-        st.error("❌ scaler.pkl not found")
-        st.stop()
+# Load dataset
+data = load_iris()
+X = data.data
+y = data.target
 
-    with open("knn_model_file.pkl", "rb") as f:
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# STEP 4: Check if model file exists
+if os.path.exists(MODEL_FILE):
+    with open(MODEL_FILE, "rb") as f:
         model = pickle.load(f)
+    st.success("✅ Model loaded")
+else:
+    # STEP 5: Train model
+    model = KNeighborsClassifier(n_neighbors=3)
+    model.fit(X_train, y_train)
 
-    with open("scaler.pkl", "rb") as f:
-        scaler = pickle.load(f)
+    # STEP 6: Save model
+    with open(MODEL_FILE, "wb") as f:
+        pickle.dump(model, f)
 
-    return model, scaler
+    st.success("✅ Model trained and saved")
 
-model, scaler = load_model()
-
-age = st.number_input("Enter Age", 18, 100, 30)
-salary = st.number_input("Enter Estimated Salary", 1000, 200000, 50000, step=1000)
+# Input
+a = st.number_input("Sepal Length", 0.0, 10.0, 5.1)
+b = st.number_input("Sepal Width", 0.0, 10.0, 3.5)
+c = st.number_input("Petal Length", 0.0, 10.0, 1.4)
+d = st.number_input("Petal Width", 0.0, 10.0, 0.2)
 
 if st.button("Predict"):
-    input_data = np.array([[age, salary]])
-    input_scaled = scaler.transform(input_data)
-    prediction = model.predict(input_scaled)
-
-    if prediction[0] == 1:
-        st.success("✅ Customer is likely to PURCHASE")
-    else:
-        st.error("❌ Customer is NOT likely to purchase")
+    result = model.predict([[a, b, c, d]])
+    st.write("Prediction:", result[0])
